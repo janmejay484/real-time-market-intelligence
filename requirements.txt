@@ -1,0 +1,11 @@
+streamlit
+yfinance
+pandas
+numpy
+matplotlib
+prophet
+feedparser
+transformers
+torch
+requests
+plotly
