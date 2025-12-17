@@ -12,13 +12,15 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
-
+from core.strategy import compute_competitive_index, classify_strategic_signal
+from core.llm_strategy import generate_strategic_explanation
 from core.market_data import fetch_market_data
 from core.news_fetcher import fetch_news
 from core.sentiment import analyze_sentiment
 from core.forecast import run_prophet
 from core.alerts import build_alert, send_slack
 from core.utils import get_ticker
+from core.utils import ALLOWED_COMPANIES
 
 # -----------------------------
 # PAGE CONFIG
@@ -62,6 +64,7 @@ h1, h2, h3, h4 { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI,
   backdrop-filter: blur(10px);
   box-shadow: 0 14px 50px rgba(0,0,0,0.35);
   margin-bottom: 14px;
+  margin-top:44px;
 }
 
 .title{
@@ -178,7 +181,8 @@ def _compute_rsi(series: pd.Series, period: int = 14) -> pd.Series:
     loss = (-delta.clip(upper=0)).rolling(period).mean()
     rs = gain / (loss.replace(0, np.nan))
     rsi = 100 - (100 / (1 + rs))
-    return rsi.fillna(method="bfill").fillna(50)
+    return rsi.bfill().fillna(50)
+
 
 def _sentiment_badge(label: str) -> str:
     lbl = (label or "").lower()
@@ -203,9 +207,9 @@ with st.sidebar:
     st.markdown("## Controls")
     company = st.selectbox(
         "Company",
-        ["MASTERCARD", "AMAZON", "APPLE", "MICROSOFT", "GOOGLE", "INFOSYS", "TCS"],
-        index=5,
-    )
+        sorted(ALLOWED_COMPANIES),
+)
+
     ticker = get_ticker(company)
 
     range_label = st.selectbox(
@@ -227,7 +231,7 @@ with st.sidebar:
     st.markdown("---")
     slack_enabled = st.toggle("Enable Slack Button", value=True)
     st.markdown(
-        "<div class='small-note'>Tip: Use this for your internship demo. KPIs + Candlestick + Sentiment + News Cards impress quickly.</div>",
+        "<div class='small-note'>Tip: Use this for your demo. KPIs + Candlestick + Sentiment + News Cards impress quickly.</div>",
         unsafe_allow_html=True,
     )
 
@@ -246,7 +250,7 @@ st.markdown(
     <div>
       <div class="title">Real-Time Market Intelligence</div>
       <div class="subtitle">
-        Company: <b>{company}</b> ({ticker}) · Live Market Trend · News Sentiment · Forecast · Alerts
+        Company: <b>{company}</b> ({ticker}) · Strategic Intelligence · Market Trends · AI Sentiment · Forecast · Alerts
       </div>
     </div>
     <div style="text-align:right;">
@@ -310,10 +314,43 @@ with st.spinner("Fetching headlines and running sentiment..."):
 
 # Forecast
 with st.spinner("Generating forecast..."):
-    forecast_df = run_prophet(market_df)
+    forecast_df = run_prophet(market_df) if len(market_df) >= 60 else None
+
+# -----------------------------
+# STRATEGIC INTELLIGENCE LOGIC
+# -----------------------------
+competitive_index = compute_competitive_index(
+    market_df=market_df,
+    sentiment_counts=sentiment_counts or {},
+    forecast_df=forecast_df,
+)
+
+strategic_signal = classify_strategic_signal(
+    market_df=market_df,
+    sentiment_counts=sentiment_counts or {},
+    forecast_df=forecast_df,
+)
 
 # Alert payload
-alert = build_alert(company, ticker, sentiment_counts or {})
+alert = build_alert(
+    company,
+    ticker,
+    sentiment_counts or {},
+    strategic={
+        "competitive_index": competitive_index,
+        "strategic_signal": strategic_signal,
+    },
+)
+# -----------------------------
+# LLM STRATEGIC EXPLANATION
+# -----------------------------
+llm_explanation = generate_strategic_explanation(
+    company=company,
+    competitive_index=competitive_index,
+    strategic_signal=strategic_signal,
+    sentiment_counts=sentiment_counts or {},
+)
+
 
 # -----------------------------
 # KPI ROW
@@ -355,16 +392,23 @@ kpi_card(k1, "Last Close", f"{last_close:,.2f}", f"1D: {chg_1d:+.2f}%")
 kpi_card(k2, f"Change ({range_label})", f"{chg_range:+.2f}%", "Price performance")
 kpi_card(k3, "Volatility", f"{volatility:.2f}%", "Std dev of daily returns")
 kpi_card(k4, "Sentiment Score", f"{sent_score:+.1f}", f"Pos {pos} · Neu {neu} · Neg {neg}")
-kpi_card(k5, "Alert", f"{(alert or {}).get('alert_type','N/A')}", (alert or {}).get("message", "—")[:34] + "…")
+kpi_card(
+    k5,
+    "Alert",
+    f"{(alert or {}).get('alert_type','N/A')}",
+    (alert or {}).get("strategic_action", "—")[:34] + "…",
+)
+
 
 st.markdown("<hr/>", unsafe_allow_html=True)
 
 # -----------------------------
 # MAIN CONTENT TABS
 # -----------------------------
-tab_overview, tab_forecast, tab_sentiment, tab_news, tab_alerts = st.tabs(
-    ["📈 Market", "🧠 Forecast", "💬 Sentiment", "📰 News", "🔔 Alerts"]
+tab_strategy, tab_overview, tab_forecast, tab_sentiment, tab_news, tab_alerts = st.tabs(
+    ["🧠 Strategy", "📈 Market", "🧠 Forecast", "💬 Sentiment", "📰 News", "🔔 Alerts"]
 )
+
 
 # =========================================================
 # TAB: MARKET
@@ -474,6 +518,112 @@ with tab_overview:
             file_name=f"{company}_{range_label}_market.csv",
             mime="text/csv",
         )
+# =========================================================
+# TAB: STRATEGIC INTELLIGENCE
+# =========================================================
+with tab_strategy:
+    st.markdown("## 🧠 Strategic Intelligence Summary")
+
+    c1, c2 = st.columns([1, 1.2], gap="large")
+
+    # -----------------------------
+    # COMPETITIVE POSITIONING INDEX
+    # -----------------------------
+    with c1:
+        strength = (
+            "Dominant" if competitive_index >= 80 else
+            "Strong" if competitive_index >= 65 else
+            "Neutral" if competitive_index >= 45 else
+            "Weak"
+        )
+
+        st.markdown(
+            f"""
+<div class="glass glass-hover">
+  <div class="kpi-label">Competitive Positioning Index</div>
+  <div class="kpi-value">{competitive_index} / 100</div>
+  <div class="kpi-sub">Strategic Strength: <b>{strength}</b></div>
+  <br/>
+  <div class="small-note">
+    Computed using price momentum, sentiment polarity,
+    forecast direction, and news intensity.
+  </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("## 🤖 AI-Generated Strategic Explanation")
+
+        st.markdown(
+            f"""
+<div class="glass glass-hover">
+  <div class="kpi-label">Executive Strategy Brief</div>
+  <pre style="
+    white-space: pre-wrap;
+    font-size: 0.92rem;
+    line-height: 1.45rem;
+    color: #e8e8e8;
+    margin-top: 10px;
+  ">
+{llm_explanation}
+  </pre>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+        
+
+    # -----------------------------
+    # OPPORTUNITY / THREAT SIGNAL
+    # -----------------------------
+    with c2:
+        signal_color = (
+            "#22c55e" if strategic_signal["signal"] == "OPPORTUNITY"
+            else "#ff4d6d" if strategic_signal["signal"] == "THREAT"
+            else "#ffb347"
+        )
+
+        st.markdown(
+            f"""
+<div class="glass glass-hover">
+  <div class="kpi-label">Strategic Signal</div>
+  <div class="kpi-value" style="color:{signal_color}">
+    {strategic_signal['signal']}
+  </div>
+  <div class="kpi-sub">Confidence Level: {strategic_signal['confidence']}</div>
+  <hr/>
+  <ul style="margin-left:18px;">
+    {''.join([f"<li>{r}</li>" for r in strategic_signal["reason"]])}
+  </ul>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+    # -----------------------------
+    # STRATEGIC INTERPRETATION
+    # -----------------------------
+    st.markdown("### 📌 Strategic Interpretation")
+
+    interpretation = (
+        "Current indicators suggest a favorable strategic position with upside potential."
+        if strategic_signal["signal"] == "OPPORTUNITY"
+        else
+        "Warning signals detected. Risk mitigation and close monitoring are recommended."
+        if strategic_signal["signal"] == "THREAT"
+        else
+        "Signals are mixed. Continued observation is advised before taking strategic action."
+    )
+
+    st.markdown(
+        f"""
+<div class="glass">
+  <div class="small-note">{interpretation}</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
 
 # =========================================================
 # TAB: FORECAST

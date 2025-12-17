@@ -1,86 +1,96 @@
-# =========================
-# ALLOWED COMPANIES (FROM COLAB)
-# =========================
+from __future__ import annotations
+
 ALLOWED_COMPANIES = [
-    "NETFLIX", "APPLE", "TESLA", "GOOGLE", "MICROSOFT",
-    "TCS", "INFOSYS", "RAKUTEN",
-    "BITCOIN", "ETHEREUM", "DOGECOIN", "SOLANA",
-    "AMAZON", "META", "NVIDIA", "AMD", "INTEL",
-    "JP MORGAN", "GOLDMAN SACHS", "MASTERCARD", "VISA",
-    "RELIANCE", "HDFC", "ICICI", "WIPRO", "HCL",
-    "ADANIPORTS", "ADANIENT", "TATA MOTORS", "MARUTI",
-    "COCA COLA", "PEPSICO", "WALMART"
+    # ===== Global Tech =====
+    "APPLE", "MICROSOFT", "GOOGLE", "AMAZON", "META",
+    "NETFLIX", "NVIDIA", "AMD", "INTEL",
+
+    # ===== Indian IT =====
+    "INFOSYS", "TCS", "WIPRO", "HCL", "TECH MAHINDRA",
+    "LTIMINDTREE", "MPHASIS", "COFORGE",
+
+    # ===== Indian Conglomerates =====
+    "RELIANCE", "TATA MOTORS", "MARUTI", "ADANIENT", "ADANIPORTS",
+
+    # ===== Banking & Finance =====
+    "HDFC", "ICICI", "AXIS BANK",
+    "JP MORGAN", "GOLDMAN SACHS", "MORGAN STANLEY",
+    "MASTERCARD", "VISA",
+
+    # ===== FMCG / Retail =====
+    "COCA COLA", "PEPSICO", "WALMART", "NESTLE",
+
+    # ===== Energy =====
+    "ONGC", "BPCL", "IOC",
+
+    # ===== Crypto / Digital Assets =====
+    "BITCOIN", "ETHEREUM", "SOLANA", "DOGECOIN",
 ]
 
-# =========================
-# COMPANY → YAHOO FINANCE TICKER MAP
-# =========================
 TICKER_MAP = {
-    # Tech
-    "NETFLIX": "NFLX",
+    # ===== Global Tech =====
     "APPLE": "AAPL",
-    "TESLA": "TSLA",
-    "GOOGLE": "GOOGL",
     "MICROSOFT": "MSFT",
+    "GOOGLE": "GOOGL",
     "AMAZON": "AMZN",
     "META": "META",
+    "NETFLIX": "NFLX",
     "NVIDIA": "NVDA",
     "AMD": "AMD",
     "INTEL": "INTC",
 
-    # Indian Stocks (NSE)
-    "TCS": "TCS.NS",
+    # ===== Indian IT (NSE) =====
     "INFOSYS": "INFY.NS",
-    "RELIANCE": "RELIANCE.NS",
-    "HDFC": "HDFCBANK.NS",
-    "ICICI": "ICICIBANK.NS",
+    "TCS": "TCS.NS",
     "WIPRO": "WIPRO.NS",
     "HCL": "HCLTECH.NS",
-    "ADANIPORTS": "ADANIPORTS.NS",
-    "ADANIENT": "ADANIENT.NS",
+    "TECH MAHINDRA": "TECHM.NS",
+    "LTIMINDTREE": "LTIM.NS",
+    "MPHASIS": "MPHASIS.NS",
+    "COFORGE": "COFORGE.NS",
+
+    # ===== Indian Conglomerates =====
+    "RELIANCE": "RELIANCE.NS",
     "TATA MOTORS": "TATAMOTORS.NS",
     "MARUTI": "MARUTI.NS",
+    "ADANIENT": "ADANIENT.NS",
+    "ADANIPORTS": "ADANIPORTS.NS",
 
-    # Finance (US)
+    # ===== Banking & Finance =====
+    "HDFC": "HDFCBANK.NS",
+    "ICICI": "ICICIBANK.NS",
+    "AXIS BANK": "AXISBANK.NS",
     "JP MORGAN": "JPM",
     "GOLDMAN SACHS": "GS",
-    "MASTERCARD": "MA",
-    "VISA": "V",
+    "MORGAN STANLEY": "MS",
 
-    # FMCG / Retail
+    # ===== FMCG / Retail =====
     "COCA COLA": "KO",
     "PEPSICO": "PEP",
     "WALMART": "WMT",
+    "NESTLE": "NSRGY",
 
-    # Crypto
+    # ===== Energy =====
+    "ONGC": "ONGC.NS",
+    "BPCL": "BPCL.NS",
+    "IOC": "IOC.NS",
+
+    # ===== Crypto =====
     "BITCOIN": "BTC-USD",
     "ETHEREUM": "ETH-USD",
-    "DOGECOIN": "DOGE-USD",
     "SOLANA": "SOL-USD",
-
-    # Others
-    "RAKUTEN": "RKUNY"
+    "DOGECOIN": "DOGE-USD",
 }
 
-# =========================
-# VALIDATION
-# =========================
+
 def validate_company(company: str):
     if not company:
         return None
     company = company.strip().upper()
     return company if company in ALLOWED_COMPANIES else None
 
-# =========================
-# TICKER RESOLUTION (SAFE)
-# =========================
+
 def get_ticker(company: str) -> str | None:
-    """
-    Returns a Yahoo Finance compatible ticker.
-    Never raises exception.
-    """
     if not company:
         return None
-
-    company = company.upper()
-    return TICKER_MAP.get(company)
+    return TICKER_MAP.get(company.strip().upper())
