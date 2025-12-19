@@ -104,6 +104,20 @@ h1, h2, h3, h4 { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI,
 .kpi-label{ color: var(--muted); font-size: 0.85rem; margin-bottom: 6px; }
 .kpi-value{ font-size: 1.55rem; font-weight: 800; letter-spacing: -0.2px; }
 .kpi-sub{ color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
+/* KPI uniform cards */
+.kpi-card {
+  height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.kpi-sub {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;   /* limit to 2 lines */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
 .badge{
   display:inline-block;
@@ -379,7 +393,7 @@ k1, k2, k3, k4, k5 = st.columns(5)
 def kpi_card(col, label, value, sub):
     col.markdown(
         f"""
-<div class="glass glass-hover">
+<div class="glass glass-hover kpi-card">
   <div class="kpi-label">{label}</div>
   <div class="kpi-value">{value}</div>
   <div class="kpi-sub">{sub}</div>
