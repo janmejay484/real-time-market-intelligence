@@ -55,98 +55,43 @@ def build_alert(company: str, ticker: str, counts: dict, *, strategic: dict | No
 
 def send_slack(alert: dict) -> bool:
     """
-    Sends a rich Slack message using Block Kit.
+    Sends a human-readable strategic alert message to Slack.
     """
     webhook = os.getenv("SLACK_WEBHOOK_URL")
     if not webhook:
         return False
 
-    blocks = [
-        {
-            "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": alert.get("alert_type", "Strategic Alert"),
-            },
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": f"*Company:*\n{alert.get('company_name','')}",
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": f"*Ticker:*\n{alert.get('company_ticker','')}",
-                },
-            ],
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": f"*Sentiment Score:*\n{alert.get('sentiment_score')}",
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": f"*Volatility:*\n{alert.get('volatility_metric')}",
-                },
-            ],
-        },
-    ]
+    breakdown = alert.get("sentiment_breakdown", {})
+    strategic_signal = alert.get("strategic_signal", {})
 
-    # Optional strategic intelligence
-    if "competitive_index" in alert:
-        blocks.append(
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Competitive Index:*\n{alert.get('competitive_index')}",
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": (
-                            "*Strategic Signal:*\n"
-                            f"{alert.get('strategic_signal',{}).get('signal','')}"
-                        ),
-                    },
-                ],
-            }
-        )
+    message = f"""
+*{alert.get('alert_type', 'Strategic Alert')}*
 
-    blocks.append(
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": f"*Recommended Action:*\n{alert.get('strategic_action','')}",
-            },
-        }
-    )
+*Company:* {alert.get('company_name','')} ({alert.get('company_ticker','')})
+*Time:* {alert.get('signal_time','')}
 
-    blocks.append(
-        {
-            "type": "context",
-            "elements": [
-                {
-                    "type": "mrkdwn",
-                    "text": f"🕒 {alert.get('signal_time','')}",
-                }
-            ],
-        }
-    )
+*Market Sentiment Overview*
+• Positive News: {breakdown.get('positive', 0)}
+• Neutral News: {breakdown.get('neutral', 0)}
+• Negative News: {breakdown.get('negative', 0)}
+
+*Strategic Intelligence*
+• Competitive Index: {alert.get('competitive_index', 'N/A')} / 100
+• Strategic Signal: {strategic_signal.get('signal', 'N/A')}
+• Confidence Level: {strategic_signal.get('confidence', 'N/A')}
+
+*Recommended Action*
+{alert.get('strategic_action', '')}
+"""
 
     try:
         r = requests.post(
             webhook,
-            json={"blocks": blocks},
+            json={"text": message.strip()},
             timeout=10,
         )
         return r.status_code == 200
     except Exception:
         return False
+
 
