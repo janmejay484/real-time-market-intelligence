@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import os
 import requests
 
@@ -41,7 +42,7 @@ def build_alert(company: str, ticker: str, counts: dict, *, strategic: dict | No
             "negative": counts.get("negative", 0),
         },
         "volatility_metric": "Medium",
-        "signal_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "signal_time": datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%Y-%m-%d %H:%M:%S IST"),
         "strategic_action": strategic_action,
     }
 

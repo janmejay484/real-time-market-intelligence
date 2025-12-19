@@ -212,7 +212,12 @@ def load_market_data(company: str) -> pd.DataFrame:
 
 @st.cache_data(show_spinner=False, ttl=300)
 def load_news(company: str):
-    return fetch_news(company)
+    try:
+        return fetch_news(company)
+    except Exception as e:
+        # Never crash the app due to news issues
+        return []
+
 
 # -----------------------------
 # SIDEBAR CONTROLS

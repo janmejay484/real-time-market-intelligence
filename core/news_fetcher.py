@@ -1,7 +1,10 @@
-from __future__ import annotations
+# core/news_fetcher.py
 
+from __future__ import annotations
 import feedparser
 import re
+import urllib.parse
+import logging
 
 
 def clean(text: str) -> str:
@@ -12,34 +15,43 @@ def clean(text: str) -> str:
 
 def fetch_news(company: str, limit: int = 12):
     """
-    Google News RSS fetcher with richer fields.
-    Returns: title, link, source, published, description
+    Safe Google News RSS fetcher.
+    Handles invalid URLs, encoding issues, and network errors gracefully.
     """
-    url = f"https://news.google.com/rss/search?q={company}&hl=en-IN&gl=IN&ceid=IN:en"
-    feed = feedparser.parse(url)
+    if not company:
+        return []
 
-    news = []
-    for e in feed.entries[:limit]:
-        title = clean(getattr(e, "title", ""))
-        link = getattr(e, "link", "#")
-        published = clean(getattr(e, "published", "") or getattr(e, "updated", ""))
-        summary = clean(getattr(e, "summary", ""))
+    try:
+        # ✅ URL-safe query
+        query = urllib.parse.quote(company.strip())
 
-        # feedparser often includes source in e.source.title
-        source = ""
-        try:
-            source = clean(getattr(getattr(e, "source", None), "title", ""))  # type: ignore
-        except Exception:
-            source = ""
-
-        news.append(
-            {
-                "title": title,
-                "link": link,
-                "published": published,
-                "source": source,
-                "description": summary,
-            }
+        url = (
+            "https://news.google.com/rss/search?"
+            f"q={query}&hl=en-IN&gl=IN&ceid=IN:en"
         )
 
-    return news
+        feed = feedparser.parse(url)
+
+        if not feed or not getattr(feed, "entries", None):
+            return []
+
+        news = []
+        for e in feed.entries[:limit]:
+            news.append(
+                {
+                    "title": clean(getattr(e, "title", "")),
+                    "link": getattr(e, "link", "#"),
+                    "published": clean(getattr(e, "published", "")),
+                    "source": clean(
+                        getattr(getattr(e, "source", None), "title", "")
+                    ),
+                    "description": clean(getattr(e, "summary", "")),
+                }
+            )
+
+        return news
+
+    except Exception as e:
+        # ✅ NEVER crash the app
+        logging.warning(f"News fetch failed for {company}: {e}")
+        return []
