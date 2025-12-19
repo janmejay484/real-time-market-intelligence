@@ -55,25 +55,98 @@ def build_alert(company: str, ticker: str, counts: dict, *, strategic: dict | No
 
 def send_slack(alert: dict) -> bool:
     """
-    Sends a structured Slack message via Incoming Webhook.
-    Uses env var: SLACK_WEBHOOK_URL
+    Sends a rich Slack message using Block Kit.
     """
     webhook = os.getenv("SLACK_WEBHOOK_URL")
     if not webhook:
         return False
 
-    # Human-friendly summary text + structured fields
-    text = (
-        f"{alert.get('alert_type','Alert')} — {alert.get('company_name','')}"
-        f" ({alert.get('company_ticker','')})"
+    blocks = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": alert.get("alert_type", "Strategic Alert"),
+            },
+        },
+        {
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Company:*\n{alert.get('company_name','')}",
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Ticker:*\n{alert.get('company_ticker','')}",
+                },
+            ],
+        },
+        {
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Sentiment Score:*\n{alert.get('sentiment_score')}",
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Volatility:*\n{alert.get('volatility_metric')}",
+                },
+            ],
+        },
+    ]
+
+    # Optional strategic intelligence
+    if "competitive_index" in alert:
+        blocks.append(
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Competitive Index:*\n{alert.get('competitive_index')}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": (
+                            "*Strategic Signal:*\n"
+                            f"{alert.get('strategic_signal',{}).get('signal','')}"
+                        ),
+                    },
+                ],
+            }
+        )
+
+    blocks.append(
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*Recommended Action:*\n{alert.get('strategic_action','')}",
+            },
+        }
+    )
+
+    blocks.append(
+        {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"🕒 {alert.get('signal_time','')}",
+                }
+            ],
+        }
     )
 
     try:
         r = requests.post(
             webhook,
-            json={"text": text, "alert": alert},
+            json={"blocks": blocks},
             timeout=10,
         )
         return r.status_code == 200
     except Exception:
         return False
+
