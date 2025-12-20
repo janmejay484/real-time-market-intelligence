@@ -25,7 +25,7 @@ from core.utils import ALLOWED_COMPANIES
 # -----------------------------
 # PAGE CONFIG
 # -----------------------------
-st.set_page_config(page_title="Real-Time Market Intelligence", layout="wide", page_icon="📈")
+st.set_page_config(page_title="Real-Time Industry Insight & Strategic Intelligence System", layout="wide", page_icon="📈")
 
 # -----------------------------
 # GLOBAL PREMIUM UI (GLASS + DARK)
@@ -267,7 +267,7 @@ st.markdown(
 <div class="header-wrap">
   <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
     <div>
-      <div class="title">Real-Time Market Intelligence</div>
+      <div class="title">Real-Time Industry Insight & Strategic Intelligence System</div>
       <div class="subtitle">
         Company: <b>{company}</b> ({ticker}) · Strategic Intelligence · Market Trends · AI Sentiment · Forecast · Alerts
       </div>
