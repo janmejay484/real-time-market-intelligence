@@ -21,6 +21,35 @@ from core.forecast import run_prophet
 from core.alerts import build_alert, send_slack
 from core.utils import get_ticker
 from core.utils import ALLOWED_COMPANIES
+from zoneinfo import ZoneInfo
+
+HELP_TEXT = {
+    "last_close": """
+**Last Close** is the stock’s final price from the most recent trading session.
+It represents the latest confirmed market value.
+""",
+
+    "change": """
+**Price Change** shows how the stock performed over the selected time range.
+Positive values indicate gains, negative values indicate losses.
+""",
+
+    "volatility": """
+**Volatility** measures how much the stock price fluctuates daily.
+Higher volatility means higher risk and uncertainty.
+""",
+
+    "sentiment": """
+**Sentiment Score** is derived from financial news analysis.
+It reflects whether market sentiment is positive, neutral, or negative.
+""",
+
+    "alert": """
+**Alert** summarizes the current strategic condition of the stock.
+It is generated using sentiment, price trend, and forecast signals.
+"""
+}
+
 
 # -----------------------------
 # PAGE CONFIG
@@ -176,6 +205,35 @@ hr{
 .stButton>button:hover{ transform: scale(1.03); }
 
 .small-note{ color: var(--muted); font-size: 0.85rem; }
+/* ============================
+   MOBILE SIDEBAR FIX
+   ============================ */
+@media (max-width: 768px) {
+
+  /* Sidebar overlay background */
+  [data-testid="stSidebar"] {
+    background: rgba(8, 12, 22, 0.96) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 0 40px rgba(0,0,0,0.85) !important;
+  }
+
+  /* Sidebar content spacing */
+  [data-testid="stSidebar"] > div:first-child {
+    padding-top: 1rem;
+  }
+
+  /* Sidebar text contrast */
+  [data-testid="stSidebar"] * {
+    color: #e8e8e8 !important;
+  }
+
+  /* Prevent background bleed */
+  .stApp {
+    overflow-x: hidden;
+  }
+}
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -217,6 +275,51 @@ def load_news(company: str):
     except Exception as e:
         # Never crash the app due to news issues
         return []
+
+# -----------------------------
+# INDICATOR EXPLANATIONS
+# -----------------------------
+INFO_TEXT = {
+    "ma": """
+**Moving Average (MA)** smooths price data to identify trends.
+
+- **MA7** → Short-term trend (last 7 trading days)
+- **MA21** → Medium-term trend (last 21 trading days)
+
+📈 When MA7 crosses **above** MA21 → Uptrend  
+📉 When MA7 crosses **below** MA21 → Downtrend
+""",
+
+    "rsi": """
+**RSI (Relative Strength Index)** measures momentum on a scale of 0–100.
+
+- RSI > 70 → Overbought (possible pullback)
+- RSI < 30 → Oversold (possible rebound)
+- RSI 30–70 → Neutral zone
+
+Used to identify potential reversal points.
+""",
+
+    "volatility": """
+**Volatility** measures how much the price fluctuates.
+
+- High volatility → Higher risk & uncertainty
+- Low volatility → Stable price movement
+
+Calculated using standard deviation of daily returns.
+""",
+
+    "sentiment": """
+**Sentiment Score** reflects market perception from news.
+
+- Positive → Optimism
+- Neutral → Balanced view
+- Negative → Risk perception
+
+Computed using FinBERT on financial headlines.
+""",
+}
+
 
 
 # -----------------------------
@@ -274,7 +377,8 @@ st.markdown(
     </div>
     <div style="text-align:right;">
       <div class="badge">Internship Project</div>
-      <div class="news-meta">{datetime.now().strftime("%d %b %Y · %I:%M %p")}</div>
+      <div class="news-meta">{datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d %b %Y · %I:%M %p")
+}</div>
     </div>
   </div>
 </div>
@@ -395,7 +499,7 @@ if total_news > 0:
 
 k1, k2, k3, k4, k5 = st.columns(5)
 
-def kpi_card(col, label, value, sub):
+def kpi_card(col, label, value, sub, help_text=None):
     col.markdown(
         f"""
 <div class="glass glass-hover kpi-card">
@@ -407,16 +511,50 @@ def kpi_card(col, label, value, sub):
         unsafe_allow_html=True,
     )
 
-kpi_card(k1, "Last Close", f"{last_close:,.2f}", f"1D: {chg_1d:+.2f}%")
-kpi_card(k2, f"Change ({range_label})", f"{chg_range:+.2f}%", "Price performance")
-kpi_card(k3, "Volatility", f"{volatility:.2f}%", "Std dev of daily returns")
-kpi_card(k4, "Sentiment Score", f"{sent_score:+.1f}", f"Pos {pos} · Neu {neu} · Neg {neg}")
+    if help_text:
+        with col.expander("ℹ️ What does this mean?"):
+            st.markdown(help_text)
+            
+kpi_card(
+    k1,
+    "Last Close",
+    f"{last_close:,.2f}",
+    f"1D: {chg_1d:+.2f}%",
+    HELP_TEXT["last_close"],
+)
+
+kpi_card(
+    k2,
+    f"Change ({range_label})",
+    f"{chg_range:+.2f}%",
+    "Price performance",
+    HELP_TEXT["change"],
+)
+
+kpi_card(
+    k3,
+    "Volatility",
+    f"{volatility:.2f}%",
+    "Std dev of daily returns",
+    HELP_TEXT["volatility"],
+)
+
+kpi_card(
+    k4,
+    "Sentiment Score",
+    f"{sent_score:+.1f}",
+    "Range: −100 (Bearish) to +100 (Bullish)",
+    HELP_TEXT["sentiment"],
+)
+
 kpi_card(
     k5,
     "Alert",
     f"{(alert or {}).get('alert_type','N/A')}",
     (alert or {}).get("strategic_action", "—")[:34] + "…",
+    HELP_TEXT["alert"],
 )
+
 
 
 st.markdown("<hr/>", unsafe_allow_html=True)
@@ -501,6 +639,15 @@ with tab_overview:
 
     with right:
         st.markdown("### Quick Summary")
+        with st.expander("ℹ️ What do these indicators mean?"):
+            st.markdown(INFO_TEXT["ma"])
+            st.markdown("---")
+            st.markdown(INFO_TEXT["rsi"])
+            st.markdown("---")
+            st.markdown(INFO_TEXT["volatility"])
+        with st.expander("ℹ️ What does RSI mean?"):
+            st.markdown(INFO_TEXT["rsi"])
+
 
         trend_txt = "Uptrend" if df["MA7"].iloc[-1] >= df["MA21"].iloc[-1] else "Downtrend"
         rsi_now = float(df["RSI14"].iloc[-1])
@@ -562,15 +709,41 @@ with tab_strategy:
   <div class="kpi-label">Competitive Positioning Index</div>
   <div class="kpi-value">{competitive_index} / 100</div>
   <div class="kpi-sub">Strategic Strength: <b>{strength}</b></div>
-  <br/>
-  <div class="small-note">
-    Computed using price momentum, sentiment polarity,
-    forecast direction, and news intensity.
   </div>
+  """,
+        unsafe_allow_html=True,
+    )
+with c1:
+    strength = (
+        "Dominant" if competitive_index >= 80 else
+        "Strong" if competitive_index >= 65 else
+        "Neutral" if competitive_index >= 45 else
+        "Weak"
+    )
+
+    st.markdown(
+        f"""
+<div class="glass glass-hover">
+  <div class="kpi-label">Competitive Positioning Index</div>
+  <div class="kpi-value">{competitive_index} / 100</div>
+  <div class="kpi-sub">Strategic Strength: <b>{strength}</b></div>
 </div>
 """,
-            unsafe_allow_html=True,
-        )
+        unsafe_allow_html=True,
+    )
+
+    with st.expander("ℹ️ How is Competitive Index calculated?"):
+        st.markdown("""
+**Competitive Positioning Index (0–100)** is calculated using:
+
+• Price momentum (35%)  
+• News sentiment strength (30%)  
+• Forecast direction (20%)  
+• News intensity (15%)
+
+Higher score → stronger strategic position
+""")
+
 
         st.markdown("## 🤖 AI-Generated Strategic Explanation")
 
@@ -792,7 +965,7 @@ with tab_alerts:
 <div class="glass">
   <div class="kpi-label">Alert Type</div>
   <div class="kpi-value">{(alert or {}).get("alert_type","N/A")}</div>
-  <div class="kpi-sub">{(alert or {}).get("message","")}</div>
+  <div class="kpi-sub">{(alert or {}).get("strategic_action","")}</div>
 </div>
 """,
         unsafe_allow_html=True,
