@@ -22,6 +22,7 @@ from core.alerts import build_alert, send_slack
 from core.utils import get_ticker
 from core.utils import ALLOWED_COMPANIES
 from zoneinfo import ZoneInfo
+from streamlit_autorefresh import st_autorefresh
 
 HELP_TEXT = {
     "last_close": """
@@ -232,6 +233,11 @@ hr{
   /* Prevent background bleed */
   .stApp {
     overflow-x: hidden;
+  }
+}
+@media (max-width: 600px) {
+  .stSlider > div > div {
+    opacity: 1 !important;
   }
 }
 
@@ -449,7 +455,12 @@ with st.sidebar:
 # Auto refresh
 if auto_refresh:
     st.caption(f"Auto-refresh enabled every {refresh_secs}s")
-    st.autorefresh(interval=refresh_secs * 1000, key="auto_refresh")
+    try:
+        st_autorefresh(interval=refresh_secs * 1000, key="auto_refresh")
+    except Exception:
+        pass  # prevents crash if environment blocks it
+
+
 
 # -----------------------------
 # HEADER
@@ -463,7 +474,7 @@ st.markdown(
       <div class="subtitle">
         Company: <b>{company}</b> ({ticker}) · Strategic Intelligence · Market Trends · AI Sentiment · Forecast · Alerts
       </div>
-    </div>
+    </div>s
     <div style="text-align:right;">
       <div class="badge">Internship Project</div>
       <div class="news-meta">{datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d %b %Y · %I:%M %p")
