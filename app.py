@@ -476,7 +476,7 @@ st.markdown(
       <div class="subtitle">
         Company: <b>{company}</b> ({ticker}) · Strategic Intelligence · Market Trends · AI Sentiment · Forecast · Alerts
       </div>
-    </div>s
+    </div>
     <div style="text-align:right;">
       <div class="badge">Internship Project</div>
       <div class="news-meta">{datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d %b %Y · %I:%M %p")
