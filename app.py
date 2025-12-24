@@ -205,6 +205,37 @@ hr{
 .stButton>button:hover{ transform: scale(1.03); }
 
 .small-note{ color: var(--muted); font-size: 0.85rem; }
+
+/* ============================
+   MOBILE SIDEBAR FIX
+   ============================ */
+@media (max-width: 768px) {
+
+  /* Sidebar overlay background */
+  [data-testid="stSidebar"] {
+    background: rgba(8, 12, 22, 0.96) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 0 40px rgba(0,0,0,0.85) !important;
+  }
+
+  /* Sidebar content spacing */
+  [data-testid="stSidebar"] > div:first-child {
+    padding-top: 1rem;
+  }
+
+  /* Sidebar text contrast */
+  [data-testid="stSidebar"] * {
+    color: #e8e8e8 !important;
+  }
+
+  /* Prevent background bleed */
+  .stApp {
+    overflow-x: hidden;
+  }
+}
+
+
 </style>
 """,
     unsafe_allow_html=True,
