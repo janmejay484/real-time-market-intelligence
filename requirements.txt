@@ -11,4 +11,4 @@ requests
 plotly
 prophet>=1.1
 cmdstanpy
-st-autorefresh
+# st-autorefresh

@@ -22,7 +22,7 @@ from core.alerts import build_alert, send_slack
 from core.utils import get_ticker
 from core.utils import ALLOWED_COMPANIES
 from zoneinfo import ZoneInfo
-from st_autorefresh import st_autorefresh
+# from st_autorefresh import st_autorefresh
 
 
 
@@ -457,10 +457,10 @@ with st.sidebar:
 # Auto refresh
 if auto_refresh:
     st.caption(f"Auto-refresh enabled every {refresh_secs}s")
-    try:
-        st_autorefresh(interval=refresh_secs * 1000, key="auto_refresh")
-    except Exception:
-        pass  # prevents crash if environment blocks it
+    # try:
+    #     st_autorefresh(interval=refresh_secs * 1000, key="auto_refresh")
+    # except Exception:
+    #     pass  # prevents crash if environment blocks it
 
 
 
